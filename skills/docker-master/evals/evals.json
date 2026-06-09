@@ -1,0 +1,80 @@
+{
+  "skill_name": "docker-master",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dockerize-nodejs-fastify-app",
+      "prompt": "Tengo una app Fastify en Node 22 que escucha en el puerto 3000 con endpoint /health para liveness. Necesito dockerizarla para producción: multi-stage, non-root, healthcheck, optimizada para size. Dame el Dockerfile + .dockerignore. La app es TypeScript que compila a dist/server.js.",
+      "expected_output": "Multi-stage Dockerfile with: deps stage (npm ci --omit=dev), builder stage (full deps + npm run build), runtime stage based on node:22-alpine, USER node, HEALTHCHECK calling /health, CMD running dist/server.js. Plus a .dockerignore excluding node_modules, .git, .env, tests, build artifacts. Bilingual EN/ES comments.",
+      "files": [],
+      "assertions": [
+        { "text": "Output contains a Dockerfile with at least 2 FROM directives (multi-stage)", "type": "must_pass" },
+        { "text": "Final stage uses node:22-alpine or node:22.x.x-alpine", "type": "must_pass" },
+        { "text": "Includes USER directive with non-root user (node or numeric)", "type": "must_pass" },
+        { "text": "Includes HEALTHCHECK that hits /health endpoint", "type": "must_pass" },
+        { "text": "Final CMD runs node dist/server.js or similar", "type": "must_pass" },
+        { "text": "Uses npm ci instead of npm install in deps stage", "type": "must_pass" },
+        { "text": "Provides a .dockerignore that excludes node_modules and .git", "type": "must_pass" },
+        { "text": "Comments are bilingual EN/ES (per owner convention)", "type": "nice_to_have" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "debug-container-keeps-crashing",
+      "prompt": "Mi contenedor `my-api` se reinicia constantemente. docker ps -a muestra Status: Restarting (137). Es una app Node que conecta a Postgres. Ya verifiqué que postgres está corriendo. ¿Cómo debuggeo y resuelvo?",
+      "expected_output": "Step-by-step diagnostic: (1) check OOMKilled flag via docker inspect, (2) look at exit code 137 → SIGKILL (likely OOM), (3) check memory limits and stats, (4) read logs for any crash info before kill, (5) propose remediation: increase memory limit OR reduce app memory usage. Should mention that 137 = OOM in 95% of cases.",
+      "files": [],
+      "assertions": [
+        { "text": "Identifies exit code 137 as SIGKILL / OOM", "type": "must_pass" },
+        { "text": "Recommends checking docker inspect for OOMKilled field", "type": "must_pass" },
+        { "text": "Recommends docker logs to see what happened before crash", "type": "must_pass" },
+        { "text": "Suggests memory limit increase (docker run -m or compose deploy.resources.limits.memory)", "type": "must_pass" },
+        { "text": "Mentions reducing app memory usage as alternative (heap size, leaks)", "type": "nice_to_have" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "build-from-github-private-repo",
+      "prompt": "Necesito buildear una imagen Docker desde el repo GitHub privado `mycompany/secret-tool` en la branch `production`. Tengo un Personal Access Token en la env var GH_TOKEN. El Dockerfile está en `docker/api/Dockerfile` dentro del repo. ¿Cómo lo hago?",
+      "expected_output": "Two-step approach: (1) Clone the private repo using HTTPS with token (git clone https://${GH_TOKEN}@github.com/mycompany/secret-tool.git -b production), (2) cd into the clone, (3) docker build -t name -f docker/api/Dockerfile . Should mention that docker build URL doesn't support auth, so clone first is required. Could also mention using build_from_github.sh script if available.",
+      "files": [],
+      "assertions": [
+        { "text": "Recognizes that private repos can't be built directly from docker build URL", "type": "must_pass" },
+        { "text": "Provides correct git clone command using HTTPS + token", "type": "must_pass" },
+        { "text": "Uses -f flag for non-standard Dockerfile path", "type": "must_pass" },
+        { "text": "Uses -b production for specific branch", "type": "must_pass" },
+        { "text": "Mentions cleaning up the temp clone afterwards (optional but good)", "type": "nice_to_have" }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "compose-stack-with-postgres-healthcheck-race",
+      "prompt": "Mi docker-compose tiene una app que depende de Postgres pero a veces la app arranca antes que Postgres esté listo y falla. Tengo `depends_on: [db]` pero no funciona bien. ¿Cómo lo arreglo?",
+      "expected_output": "Explain that bare depends_on only waits for container START, not for app readiness. Solution: add a healthcheck to the db service (using pg_isready) AND change depends_on to condition: service_healthy on the app. Show the exact YAML snippet for both changes.",
+      "files": [],
+      "assertions": [
+        { "text": "Explains that depends_on without condition only waits for start, not readiness", "type": "must_pass" },
+        { "text": "Provides a healthcheck on db service using pg_isready", "type": "must_pass" },
+        { "text": "Provides the depends_on with condition: service_healthy syntax", "type": "must_pass" },
+        { "text": "Shows complete YAML snippet, not just prose explanation", "type": "must_pass" },
+        { "text": "Mentions start_period parameter for slow-starting services", "type": "nice_to_have" }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "docker-disk-full-cleanup",
+      "prompt": "Estoy en Windows con Docker Desktop, y se llenó el disco. Quiero limpiar imágenes, contenedores parados y cache de build, PERO no quiero perder los volúmenes con mi data de DBs. ¿Cómo limpio de forma segura?",
+      "expected_output": "Step-by-step safe cleanup: (1) docker system df to see usage, (2) docker container prune for stopped containers, (3) docker image prune -a for unused images, (4) docker builder prune for buildkit cache, (5) DO NOT run docker volume prune. Mention safe_cleanup.ps1 script if available. Also mention Windows-specific note that freed space in Docker doesn't auto-shrink WSL2 VHDX, requires Optimize-VHD or diskpart compact vdisk.",
+      "files": [],
+      "assertions": [
+        { "text": "Includes docker system df at the start to assess", "type": "must_pass" },
+        { "text": "Explicitly excludes 'docker volume prune' from the cleanup steps", "type": "must_pass" },
+        { "text": "Includes docker container prune", "type": "must_pass" },
+        { "text": "Includes docker image prune -a (for unused images, not just dangling)", "type": "must_pass" },
+        { "text": "Includes docker builder prune for buildkit cache", "type": "must_pass" },
+        { "text": "Mentions Windows-specific VHDX shrink (Optimize-VHD or diskpart) after docker cleanup", "type": "must_pass" },
+        { "text": "References safe_cleanup.ps1 script if mentioned in skill", "type": "nice_to_have" }
+      ]
+    }
+  ]
+}

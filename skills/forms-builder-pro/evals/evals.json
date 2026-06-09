@@ -1,0 +1,168 @@
+{
+  "skill_name": "forms-builder-pro",
+  "evals": [
+    {
+      "id": 1,
+      "name": "onboarding-survey-spanish",
+      "prompt": "Necesito una encuesta de onboarding para nuevos miembros del equipo de AI. 8 preguntas mix de multi-choice, scale, paragraph. Quiero incluir una tabla comparativa de las 4 herramientas AI principales (Claude / ChatGPT / Copilot / Gemini) con sus diferencias, y un video corto de bienvenida del CEO (YouTube URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ). Dashboard con NPS de la experiencia de onboarding. Recibir respuestas en una Google Sheet. Idioma: español.",
+      "expected_output": "Complete Apps Script (.gs file) that creates a Google Form with: 8 questions across 3 sections, 1 YouTube video item, 1 image item (referencing a generated PNG for the comparison table), Spanish helper text and titles, custom-slugged headers (timestamp, nombre, fecha_inicio, rol, herramienta_anterior, años_experiencia_ai, proyectos_relevantes, nps_onboarding, comentarios_extra), Dashboard tab config with NPS calculation + donut for rol + bar for años_experiencia + timeseries. Includes PNG generation spec for the comparison table (separate from the .gs file).",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Output contains a complete .gs file (starts with 'function main()' or 'const CONFIG' and ends cleanly)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script includes FormApp.create() with Spanish title",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has at least 3 addPageBreakItem() calls (3 sections)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has at least 8 question items (counting addTextItem, addParagraphTextItem, addMultipleChoiceItem, addListItem, addScaleItem, addCheckboxItem, addDateItem, etc.)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has addVideoItem() with the YouTube URL",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has addImageItem() referencing CONFIG.IMAGE_IDS",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has setDestination(FormApp.DestinationType.SPREADSHEET, ...) call",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script defines CONFIG.customHeaders with at least 9 entries (timestamp + 8 questions)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Custom headers use snake_case (no spaces, no question marks, no special chars except _ and accented chars)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Custom headers include 'nps_onboarding' or similar NPS-related slug",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script includes setupDashboard() function with at least an NPS calculation",
+          "type": "must_pass"
+        },
+        {
+          "text": "Spec for PNG generation (comparison table) is provided separately as JSON or Python script invocation",
+          "type": "nice_to_have"
+        },
+        {
+          "text": "Helper text on questions is in Spanish, conversational, under 200 chars each",
+          "type": "nice_to_have"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "customer-feedback-nps-with-webhook",
+      "prompt": "Encuesta de satisfacción post-compra. 5 preguntas: nombre (opcional), email con validación, dropdown de categoría de producto (al menos 5 categorías), NPS 0-10, y comentarios libres. Quiero un webhook que postee a https://api.misitio.com/feedback en cada respuesta. Email de alerta solo cuando NPS < 6 a admin@misitio.com. Dashboard con NPS y distribución por categoría. Idioma: español.",
+      "expected_output": "Apps Script with form + linked sheet + conditional email logic (only sends email when nps < 6) + webhook on every submit + custom dashboard with NPS calculation + donut by category.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Output is a complete .gs Apps Script file",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has exactly 5 question items",
+          "type": "must_pass"
+        },
+        {
+          "text": "Email field has setValidation with email regex pattern",
+          "type": "must_pass"
+        },
+        {
+          "text": "Dropdown for category has setChoiceValues with at least 5 entries",
+          "type": "must_pass"
+        },
+        {
+          "text": "Scale item for NPS uses setBounds(0, 10)",
+          "type": "must_pass"
+        },
+        {
+          "text": "CONFIG includes enableWebhook: true and webhookUrl: 'https://api.misitio.com/feedback'",
+          "type": "must_pass"
+        },
+        {
+          "text": "CONFIG includes enableEmailNotify: true and emailNotifyTo: 'admin@misitio.com'",
+          "type": "must_pass"
+        },
+        {
+          "text": "onFormSubmitHandler has conditional logic that only sends email when nps < 6",
+          "type": "must_pass"
+        },
+        {
+          "text": "Webhook is sent on every submit (no NPS condition for webhook)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Dashboard config includes 'nps' type and 'donut' for categoria_producto",
+          "type": "must_pass"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "employee-engagement-survey-with-grid-and-file-upload",
+      "prompt": "Encuesta de engagement anual. 12 preguntas en 3 secciones. Incluye una matriz (grid) donde el empleado ranka 5 dimensiones de su trabajo (Autonomía, Crecimiento, Equipo, Liderazgo, Impacto) en escala de 1 a 5. También un file upload opcional para 'comentarios privados al CEO' (solo PDF, max 10MB, max 1 archivo). Necesito una lista visual (PNG) explicando qué significa cada dimensión antes de la matriz. Dashboard sin webhook. Idioma: español. Notar al usuario que file upload requires Google Workspace.",
+      "expected_output": "Apps Script with 3 sections, 12 questions including addGridItem for the 5×5 matrix, addFileUploadItem with PDF-only / 10MB / 1 file restrictions, image item before the grid referencing a PNG showing the 5 dimensions with descriptions, custom dashboard config. Warning message about Workspace requirement.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Output is a complete .gs Apps Script file",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has 3 addPageBreakItem() calls",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has addGridItem with setRows containing the 5 dimensions",
+          "type": "must_pass"
+        },
+        {
+          "text": "Grid item has setColumns with 5 rating options",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has addFileUploadItem with setMaxFileSize(10) and setMaxNumberOfFiles(1)",
+          "type": "must_pass"
+        },
+        {
+          "text": "File upload item has setAllowedFileTypes including FormApp.FileType.PDF",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has addImageItem before the grid item",
+          "type": "must_pass"
+        },
+        {
+          "text": "PNG spec for the dimensions list is provided (list type with 5 items, each with title + description)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Output includes a warning to the user about file upload requiring Google Workspace",
+          "type": "must_pass"
+        },
+        {
+          "text": "CONFIG has enableWebhook: false (not enabled)",
+          "type": "must_pass"
+        },
+        {
+          "text": "Apps Script has approximately 12 question items total",
+          "type": "must_pass"
+        }
+      ]
+    }
+  ]
+}

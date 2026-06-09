@@ -1,0 +1,131 @@
+# Production stack: app + Postgres with healthchecks, resource limits, restart policies
+# Stack production: app + Postgres con healthchecks, resource limits, restart policies
+#
+# Use with .env for secrets (NEVER commit secrets to compose file).
+# Usar con .env para secrets (NUNCA commitear secrets al compose file).
+#
+# Usage / Uso:
+#   docker compose -f prod-app-db.yml --env-file .env up -d
+#   docker compose -f prod-app-db.yml --env-file .env logs -f
+#   docker compose -f prod-app-db.yml --env-file .env down  (does NOT delete volumes)
+
+services:
+  app:
+    image: ghcr.io/myorg/myapp:${APP_VERSION}    # pinned version, from registry — NOT build
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://app:${DB_PASSWORD}@db:5432/${DB_NAME}
+      LOG_LEVEL: info
+      # Don't bake secrets here — use secrets: section below for sensitive ones
+    secrets:
+      - jwt_signing_key
+      - stripe_api_key
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"   # bind to localhost only — reverse proxy fronts this
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - backend
+
+  db:
+    image: postgres:17.2-alpine3.21
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      # Performance tuning (adjust to your RAM)
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    # Don't expose port to host — only accessible from `backend` network
+    # NO exponer port al host — solo accesible desde `backend` network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - backend
+    # Recommended: configure postgres with command tuning matching your workload
+    # command:
+    #   - "postgres"
+    #   - "-c"
+    #   - "max_connections=200"
+    #   - "-c"
+    #   - "shared_buffers=512MB"
+    #   - "-c"
+    #   - "effective_cache_size=1536MB"
+
+  # Optional: backup container (runs nightly)
+  # Opcional: container de backup (corre cada noche)
+  backup:
+    image: postgres:17.2-alpine3.21
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: app
+      PGPASSWORD: ${DB_PASSWORD}
+      PGDATABASE: ${DB_NAME}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    # Run pg_dump every night at 2 AM
+    # Ejecutar pg_dump cada noche a las 2 AM
+    entrypoint: >
+      sh -c '
+        echo "0 2 * * * pg_dump > /backups/db-$(date +%Y%m%d-%H%M%S).sql && find /backups -name \"db-*.sql\" -mtime +7 -delete" > /tmp/crontab
+        crond -f -l 2
+      '
+    networks:
+      - backend
+
+secrets:
+  jwt_signing_key:
+    file: ./secrets/jwt_signing_key.txt    # gitignored; deploy script populates
+  stripe_api_key:
+    file: ./secrets/stripe_api_key.txt
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
+    # internal: true   # uncomment to block ALL outbound internet from these services
